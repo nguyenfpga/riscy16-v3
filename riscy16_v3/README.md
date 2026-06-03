@@ -53,3 +53,7 @@ The source tree also contains planned extension areas for branch prediction,
 caches, MMIO, peripherals, and richer verification. Those pieces are not part
 of the active simulation path until they are wired into `sim/run.do` and the
 top-level processor.
+
+## License
+
+This project is licensed under the MIT License. See [../LICENSE](../LICENSE).

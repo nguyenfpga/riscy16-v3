@@ -43,4 +43,4 @@ The active design implements the five-stage pipeline shell, forwarding, load-use
 
 ## License
 
-No open-source license has been selected yet. Until a license is added by the project owner, all rights are reserved by default.
+This project is licensed under the MIT License. See [LICENSE](LICENSE).
