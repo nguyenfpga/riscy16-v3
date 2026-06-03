@@ -1,0 +1,23 @@
+name: Smoke
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  project-smoke:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: riscy16_v3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Assemble sample program
+        run: python tools/assembler.py tests/basic.asm program.generated.txt
+      - name: Run instruction-set simulator
+        run: python sim/iss/iss.py program.generated.txt --max-cycles 256
+      - name: Check active RTL source list
+        run: python tools/synth_check.py

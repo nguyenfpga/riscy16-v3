@@ -1,0 +1,259 @@
+% =============================================================================
+% riscy16_datapath.tex -- first-pass datapath diagram for RISCY-16 v3
+% Compile with: pdflatex riscy16_datapath.tex
+% =============================================================================
+\documentclass[border=10pt]{standalone}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{positioning,shapes.geometric,arrows.meta,calc,fit,backgrounds}
+
+\begin{document}
+\begin{tikzpicture}[
+    x=1cm, y=1cm,
+    font=\small\sffamily,
+    % ===== styles =====
+    block/.style   ={draw, rounded corners=2pt, fill=white,
+                     minimum width=1.4cm, minimum height=0.9cm,
+                     align=center, inner sep=2pt},
+    smallblock/.style={draw, rounded corners=2pt, fill=white,
+                     minimum width=1.1cm, minimum height=0.55cm,
+                     align=center, inner sep=1pt, font=\scriptsize},
+    mem/.style     ={draw, fill=white, line width=0.5pt,
+                     minimum width=1.6cm, minimum height=1.2cm,
+                     align=center, inner sep=2pt,
+                     append after command={\pgfextra{%
+                       \draw[line width=1.2pt]
+                         (\tikzlastnode.north west)--(\tikzlastnode.south west);}}},
+    regfile/.style ={draw, fill=white,
+                     minimum width=1.6cm, minimum height=2.0cm,
+                     align=center, inner sep=2pt},
+    mux/.style     ={draw, fill=white,
+                     shape=trapezium, trapezium left angle=70,
+                     trapezium right angle=110, shape border rotate=270,
+                     minimum width=0.4cm, minimum height=0.9cm,
+                     inner sep=1pt, font=\scriptsize},
+    pipereg/.style ={draw=gray!60, fill=gray!25,
+                     minimum width=0.45cm, minimum height=6.2cm,
+                     inner sep=1pt},
+    bus/.style     ={-{Stealth[length=2mm]}, line width=0.7pt},
+    fwd/.style     ={-{Stealth[length=2mm]}, dashed,
+                     draw=RoyalBlue, line width=0.6pt},
+    hzd/.style     ={-{Stealth[length=2mm]}, dotted,
+                     draw=RoyalBlue, line width=0.7pt},
+    wlabel/.style  ={fill=white, inner sep=1pt, font=\scriptsize},
+    sel/.style     ={font=\scriptsize, inner sep=1pt},
+    dot/.style     ={circle, fill=black, inner sep=0pt, minimum size=3pt},
+  ]
+
+  % =========================================================================
+  % stage headers
+  % =========================================================================
+  \node[font=\bfseries\large] at (2.0, 8.0) {IF};
+  \node[font=\bfseries\large] at (7.0, 8.0) {ID};
+  \node[font=\bfseries\large] at (13.0,8.0) {EX};
+  \node[font=\bfseries\large] at (18.5,8.0) {MEM};
+  \node[font=\bfseries\large] at (22.5,8.0) {WB};
+
+  % =========================================================================
+  % IF stage
+  % =========================================================================
+  \node[mux, shape border rotate=0] (pcmux) at (-0.2, 4.0) {};
+  \node[sel, below=1pt of pcmux] {br/jmp};
+  \node[block] (pc)   at ( 1.4, 4.0) {PC};
+  \node[smallblock] (inc) at ( 1.4, 5.4) {+1};
+  \node[mem]   (imem) at ( 3.3, 4.0) {Instruction\\Memory};
+
+  \draw[bus] (pcmux.east) -- (pc.west);
+  \draw[bus] (pc.east) -- (imem.west);
+  \draw[bus] (pc.north) -- (inc.south);
+  \draw[bus] (inc.west) -| ($(pcmux.north)+(0,0.0)$);
+
+  % =========================================================================
+  % IF/ID
+  % =========================================================================
+  \node[pipereg] (ifid) at (4.5, 4.0) {};
+  \node[rotate=90] at (ifid.center) {IF/ID};
+  \draw[bus] (imem.east) -- (ifid.west)
+        node[wlabel, pos=0.5] {26};
+
+  % =========================================================================
+  % ID stage
+  % =========================================================================
+  \node[regfile] (rf)   at (6.5, 3.6) {Register\\File\\$32{\times}16$};
+  \node[smallblock] (dec) at (6.5, 6.6) {Decode};
+  \node[smallblock] (haz) at (8.4, 6.6) {Hazard};
+  \node[mux] (idfa) at (8.8, 4.4) {};
+  \node[mux] (idfb) at (8.8, 2.8) {};
+  \node[sel, anchor=south] at (idfa.north) {fa};
+  \node[sel, anchor=north] at (idfb.south) {fb};
+
+  % IF/ID -> Decode (opcode), regfile read addrs (5b), imm tap
+  \coordinate (ifid_out) at ($(ifid.east)+(0.25,0)$);
+  \draw[bus] (ifid.east) -- (ifid_out);
+  \node[dot] at (ifid_out) {};
+  \draw[bus] (ifid_out) |- (dec.west);
+  \draw[bus] (ifid_out) |- ($(rf.west)+(0,0.5)$) node[wlabel, pos=0.85] {5};
+  \draw[bus] (ifid_out) |- ($(rf.west)+(0,-0.5)$) node[wlabel, pos=0.85] {5};
+
+  % regfile read out -> id forward muxes
+  \draw[bus] ($(rf.east)+(0,0.5)$) -| (idfa.west);
+  \draw[bus] ($(rf.east)+(0,-0.5)$) -| (idfb.west);
+
+  % imm tap
+  \coordinate (imm_id) at ($(ifid.east)+(0.25,-1.6)$);
+  \draw[bus] (ifid.south) |- (imm_id) -- ++(5.0,0)
+        node[wlabel, pos=0.05] {16-bit imm bypasses ID};
+
+  % hazard out
+  \draw[hzd] (haz.east) -| ++(0.3,-1.5)
+        node[sel, anchor=west, pos=0.5] {load\_use\_stall};
+
+  % =========================================================================
+  % ID/EX
+  % =========================================================================
+  \node[pipereg] (idex) at (9.7, 4.0) {};
+  \node[rotate=90] at (idex.center) {ID/EX};
+  \draw[bus] (idfa.east) -- (idex.west |- idfa.east);
+  \draw[bus] (idfb.east) -- (idex.west |- idfb.east);
+
+  % =========================================================================
+  % EX stage
+  % =========================================================================
+  \node[mux] (exfa) at (10.7, 4.4) {};
+  \node[mux] (exfb) at (10.7, 2.8) {};
+  \draw[bus] (idex.east |- exfa) -- (exfa.west);
+  \draw[bus] (idex.east |- exfb) -- (exfb.west);
+
+  \node[block, minimum height=1.1cm] (alu)   at (12.6, 4.0) {ALU};
+  \node[block, minimum height=0.9cm] (mulS)  at (12.6, 6.2) {MUL\\scalar};
+  \node[block, minimum height=0.9cm] (mulB)  at (12.6, 1.6) {MUL.B\\SIMD};
+  \node[block, minimum height=0.9cm] (divu)  at (12.6, 0.0) {Divider};
+
+  % forward muxes -> exec units
+  \foreach \dst in {alu, mulS, mulB, divu} {
+    \draw[bus] (exfa.east) -| ($(\dst.west)+(0,0.18)$);
+    \draw[bus] (exfb.east) -| ($(\dst.west)+(0,-0.18)$);
+  }
+
+  % result mux
+  \node[mux, minimum height=2.6cm] (rsel) at (14.6, 4.0) {};
+  \node[sel, anchor=south] at (rsel.north) {result\_sel[\,3\,]};
+
+  \draw[bus] (alu.east)  -- ($(rsel.west)+(0,0.0)$);
+  \draw[bus] (mulS.east) -| ($(rsel.west)+(0,1.0)$)
+        node[wlabel, pos=0.95] {32};
+  \draw[bus] (mulB.east) -| ($(rsel.west)+(0,-0.7)$)
+        node[wlabel, pos=0.95] {32};
+  \draw[bus] (divu.east) -| ($(rsel.west)+(0,-1.1)$);
+  % imm and src_b also feed result mux (LDI / MOV / LDS path)
+  \draw[bus] (imm_id) -- ++(0,0) -- ($(rsel.west)+(0,0.5)$|-imm_id) -- ($(rsel.west)+(0,-0.3)$);
+
+  % data2 mux (secondary writeback path)
+  \node[mux, minimum height=1.4cm] (d2)   at (14.6, 1.0) {};
+  \node[sel, anchor=south] at (d2.north) {sel};
+  \draw[bus] (mulS.east) -| ($(d2.west)+(0,0.4)$);
+  \draw[bus] (mulB.east) -| ($(d2.west)+(0,0.0)$);
+  \draw[bus] (divu.east) -| ($(d2.west)+(0,-0.4)$);
+
+  % branch logic + PC redirect mux
+  \node[smallblock] (br) at (14.6, 6.6) {br cond};
+  \draw[bus] (alu.north) |- (br.west);
+  \node[mux, shape border rotate=0] (pct) at (14.6, 7.5) {};
+  \node[sel, anchor=west] at (pct.east) {jump};
+  \draw[bus] (br.east)  -| (pct.south);
+  \draw[hzd] (pct.west) -- ++(-15.5,0) |- (pcmux.south)
+        node[sel, pos=0.02, anchor=west] {branch/jump target};
+
+  % div_wait
+  \draw[hzd] (divu.south) |- ++(0,-0.4) -| (pcmux.south)
+        node[sel, pos=0.05, anchor=west] {div\_wait};
+
+  % =========================================================================
+  % EX/MEM
+  % =========================================================================
+  \node[pipereg] (exmem) at (16.5, 4.0) {};
+  \node[rotate=90] at (exmem.center) {EX/MEM};
+  \draw[bus] (rsel.east) -- (exmem.west |- rsel.east);
+  \draw[bus] (d2.east)   -- (exmem.west |- d2.east);
+  % store_data (forwarded src_a)
+  \draw[bus] (exfa.south) |- ($(exmem.west)+(0,-1.4)$);
+
+  % =========================================================================
+  % MEM stage
+  % =========================================================================
+  \node[mem] (dmem) at (18.6, 4.0) {Data\\Memory};
+  \draw[bus] (exmem.east |- dmem.west) -- (dmem.west);
+  \draw[bus] ($(exmem.east)+(0,-1.4)$) -| ($(dmem.south)+(-0.3,0)$);
+
+  \node[mux] (wbmux) at (19.9, 4.0) {};
+  \node[sel, anchor=south] at (wbmux.north) {mem\_read};
+  \draw[bus] (dmem.east) -- (wbmux.west);
+  % bypass: ex_mem result around DMEM
+  \draw[bus] ($(exmem.east)+(0,0.4)$) -- ++(0.3,0)
+       |- ($(wbmux.west)+(0,-0.25)$);
+
+  % =========================================================================
+  % MEM/WB
+  % =========================================================================
+  \node[pipereg] (memwb) at (20.7, 4.0) {};
+  \node[rotate=90] at (memwb.center) {MEM/WB};
+  \draw[bus] (wbmux.east) -- (memwb.west |- wbmux.east);
+  % data2 passes straight through MEM
+  \draw[bus] (exmem.east |- d2.east) -- (memwb.west |- d2.east);
+
+  % =========================================================================
+  % WB stage -> back to register file write ports
+  % =========================================================================
+  \coordinate (wb_out)  at ($(memwb.east)+(0.4,0.0)$);
+  \coordinate (wb_out2) at ($(memwb.east |- d2.east)+(0.4,0)$);
+  \draw[bus] (memwb.east) -- (wb_out);
+  \draw[bus] (memwb.east |- d2.east) -- (wb_out2);
+  \node[font=\scriptsize, anchor=west] at (wb_out)  {wb\_data $\to$ wb\_addr};
+  \node[font=\scriptsize, anchor=west] at (wb_out2) {wb\_data2 $\to$ wb\_addr2};
+  % loop back to register file (long route over the top)
+  \draw[bus] (wb_out)  -- ++(2.2,0) |- ($(rf.east)+(0,0.9)$);
+  \draw[bus] (wb_out2) -- ++(2.2,0) |- ($(rf.east)+(0,-0.9)$);
+
+  % =========================================================================
+  % forwarding trunks (drawn last, lower track at y = -1.2)
+  % =========================================================================
+  \coordinate (trunk_l) at ( 8.7,-1.2);   % near id forward muxes
+  \coordinate (trunk_r) at (16.7,-1.2);   % near EX/MEM
+  \draw[fwd] (trunk_r) -- (trunk_l);
+
+  % stubs from EX/MEM and MEM/WB down into the trunk
+  \draw[fwd] ($(exmem.east)+(0,0.4)$)  -- ++(0.2,0) |- ($(trunk_r)+(-0.1,0)$);
+  \draw[fwd] (exmem.east |- d2.east)   -- ++(0.2,0) |- ($(trunk_r)+(-0.4,0)$);
+  \draw[fwd] ($(memwb.east)+(0,0.4)$)  -- ++(0.2,0) |- ($(trunk_r)+(0.4,0)$);
+  \draw[fwd] (memwb.east |- d2.east)   -- ++(0.2,0) |- ($(trunk_r)+(0.7,0)$);
+
+  % stubs up from trunk into ID forward muxes and EX forward muxes
+  \draw[fwd] (8.8,-1.2) -- (idfa.south);
+  \draw[fwd] (8.8,-1.2) -- (idfb.south -| 8.8,0);
+  \draw[fwd] (10.7,-1.2) |- (exfa.south -| 10.7,0);
+  \draw[fwd] (10.7,-1.2) |- (exfb.south -| 10.7,0);
+
+  % =========================================================================
+  % stage background tints (drawn behind everything via background layer)
+  % =========================================================================
+  \begin{scope}[on background layer]
+    \fill[blue!6]   (-1.0,-0.8) rectangle (4.3,7.6);
+    \fill[green!6]  ( 4.3,-0.8) rectangle (9.5,7.6);
+    \fill[orange!6] ( 9.5,-0.8) rectangle (16.3,7.6);
+    \fill[red!6]    (16.3,-0.8) rectangle (20.5,7.6);
+    \fill[purple!6] (20.5,-0.8) rectangle (25.0,7.6);
+  \end{scope}
+
+  % =========================================================================
+  % legend (bottom-right)
+  % =========================================================================
+  \node[draw, fill=white, inner sep=4pt, anchor=north east] (lg) at (25.0,-0.6) {%
+    \begin{tikzpicture}[font=\scriptsize]
+      \draw[bus]               (0,0.9) -- (0.8,0.9); \node[anchor=west] at (0.85,0.9) {data bus};
+      \draw[fwd]               (0,0.55)-- (0.8,0.55);\node[anchor=west] at (0.85,0.55){forwarding};
+      \draw[hzd]               (0,0.2) -- (0.8,0.2); \node[anchor=west] at (0.85,0.2) {hazard / branch};
+      \node[anchor=west] at (0,-0.15) {unlabeled wire = 16 b};
+    \end{tikzpicture}};
+
+\end{tikzpicture}
+\end{document}

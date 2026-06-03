@@ -1,0 +1,72 @@
+# Operating system and editor noise
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+*~
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# ModelSim/Questa output
+**/work/
+**/rtl_work/
+**/@_opt/
+**/@_opt_data/
+**/transcript
+**/msim_transcript
+**/vsim.wlf
+**/*.wlf
+**/*.vcd
+**/modelsim.ini
+
+# Quartus generated output and databases
+**/db/
+**/incremental_db/
+**/output_files/
+**/simulation/questa/
+*.bak
+*.done
+*.jdi
+*.pin
+*.qws
+*.rpt
+*.sof
+*.sld
+*.smsg
+*.summary
+
+# Generated memory images can be rebuilt from tests/basic.asm.
+*.generated.txt
+
+# Local roadmap placeholders that are not part of the active release yet.
+riscy16_v3/rtl/alu/cond_eval.v
+riscy16_v3/rtl/alu/flags_reg.v
+riscy16_v3/rtl/alu/sat_unit.v
+riscy16_v3/rtl/alu/shifter_barrel_16.v
+riscy16_v3/rtl/alu/bitmanip16/
+riscy16_v3/rtl/core/btb_16x.v
+riscy16_v3/rtl/core/pred_2bit.v
+riscy16_v3/rtl/mem/dcache_dm_128.v
+riscy16_v3/rtl/mem/icache_dm_256.v
+riscy16_v3/rtl/mem/mmio_decoder.v
+riscy16_v3/rtl/mul/booth_radix4_enc.v
+riscy16_v3/rtl/mul/csa_3to2.v
+riscy16_v3/rtl/mul/mac_accumulator.v
+riscy16_v3/rtl/mul/wallace_tree_9pp.v
+riscy16_v3/rtl/peripherals/
+riscy16_v3/sim/randgen/
+riscy16_v3/tb/sva/
+riscy16_v3/tb/tb_*.v
+riscy16_v3/tests/div_demo.asm
+riscy16_v3/tests/mac_fir16.asm
+riscy16_v3/tests/recursive_fib.asm
+riscy16_v3/tests/simd_dot.asm
+riscy16_v3/tests/uart_echo.asm
