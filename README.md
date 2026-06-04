@@ -2,9 +2,6 @@
 
 RISCY-16 v3 is a Verilog implementation of a 16-bit educational processor that is being migrated from a legacy multi-cycle bus design into a five-stage in-order pipeline. The repository includes the active RTL, a regression testbench, Python tooling for the sample program, architecture notes, and a DE1-SoC FPGA wrapper.
 
-Suggested GitHub description:
-
-> Five-stage Verilog RISCY-16 CPU with forwarding, hazard detection, SIMD byte ops, multiply/divide, Python tooling, testbench, and DE1-SoC FPGA wrapper.
 
 ## Repository Layout
 
